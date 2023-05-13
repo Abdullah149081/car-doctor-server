@@ -26,6 +26,7 @@ async function run() {
 
     const servicesCollection = client.db("carDoctorDB").collection("services");
     const bannerCollection = client.db("carDoctorDB").collection("banner");
+    const bookingCollection = client.db("carDoctorDB").collection("booking");
 
     app.get("/banner", async (req, res) => {
       const banner = bannerCollection.find();
@@ -42,6 +43,32 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await servicesCollection.findOne(query);
+      res.send(result);
+    });
+
+    // important
+    app.get("/booking", async (req, res) => {
+      let query = {};
+      if (req.query?.email) {
+        query = {
+          email: req.query.email,
+        };
+      }
+
+      const result = await bookingCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.post("/booking", async (req, res) => {
+      const booking = req.body;
+      const result = await bookingCollection.insertOne(booking);
+      res.send(result);
+    });
+
+    app.delete("/booking/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await bookingCollection.deleteOne(query);
       res.send(result);
     });
 
