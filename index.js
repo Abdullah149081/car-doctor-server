@@ -20,6 +20,23 @@ const client = new MongoClient(uri, {
   },
 });
 
+const verifyJwt = (req, res, next) => {
+  const authorization = req.headers.authorization;
+
+  if (!authorization) {
+    return res.status(401).send({ err: true, message: "unauthorized access" });
+  }
+  const token = authorization.split(" ")[1];// must space 
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(403).send({ err: true, message: "unauthorized access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -29,7 +46,7 @@ async function run() {
     const bannerCollection = client.db("carDoctorDB").collection("banner");
     const bookingCollection = client.db("carDoctorDB").collection("booking");
 
-    // jwt
+    // jwt (login call)
     app.post("/jwt", (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
@@ -39,12 +56,14 @@ async function run() {
       res.send({ token }); //important
     });
 
+    // banner
     app.get("/banner", async (req, res) => {
       const banner = bannerCollection.find();
       const result = await banner.toArray();
       res.send(result);
     });
 
+    //services
     app.get("/services", async (req, res) => {
       const result = await servicesCollection.find().toArray();
       res.send(result);
@@ -57,8 +76,10 @@ async function run() {
       res.send(result);
     });
 
-    // important
-    app.get("/booking", async (req, res) => {
+    // important dynamic url email check
+
+    app.get("/booking", verifyJwt, async (req, res) => {
+      // console.log(req.headers.authorization);
       let query = {};
       if (req.query?.email) {
         query = {
